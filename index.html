@@ -1,11 +1,14 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 
 <head>
-	<title></title>
+	<title>Slurp AR</title>
 	<meta charset="utf-8">
 	<meta name="generator" content="Three.js Editor">
 	<meta name="viewport" content="width=device-width, user-scalable=no, minimum-scale=1.0, maximum-scale=1.0">
+	<link rel="preconnect" href="https://fonts.googleapis.com">
+	<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+	<link href="https://fonts.googleapis.com/css2?family=Anton&display=swap" rel="stylesheet">
 	<link rel="stylesheet" href="css/app.css">
 
 	<script type="importmap">
@@ -28,7 +31,21 @@
 
 	<div id="ar-container"></div>
 
-	<div class="log" id="log">asdasdsa</div>
+	<!-- Botones de información: aparecen cuando la cámara detecta el marcador -->
+	<div id="ar-buttons" class="oculto">
+		<button class="ar-btn" data-info="conocenos" data-color="#F81390">Conócenos</button>
+		<button class="ar-btn" data-info="diversion" data-color="#02E4D7">Más Diversión</button>
+		<button class="ar-btn" data-info="arriesgate" data-color="#C5F608">Arriésgate</button>
+	</div>
+
+	<!-- Panel de información -->
+	<div id="info-panel" class="oculto">
+		<button id="info-close" aria-label="Cerrar">✕</button>
+		<h2 id="info-title"></h2>
+		<p id="info-text"></p>
+	</div>
+
+	<div class="log" id="log"></div>
 
 	<div id="overlay">
 		<button id="start-button">Iniciar</button>
@@ -57,6 +74,50 @@
 		const progressLabel = document.getElementById('progress-label');
 
 		const debugMode = new URLSearchParams(location.search).get('debug') === '1';
+
+		// El log solo se muestra en modo debug (?debug=1)
+		if (!debugMode) log.style.display = 'none';
+
+		// ------------------------------------------------------------------
+		// Contenido de los botones de información
+		// ------------------------------------------------------------------
+		const MARCA = 'Slurp'; // Cambia esto por el nombre real de tu marca
+
+		const INFO = {
+			conocenos: {
+				titulo: 'Conócenos',
+				texto: `${MARCA} nació en una galaxia muy, muy lejana con una misión: que ninguna fiesta vuelva a ser aburrida. Es la bebida burbujeante y de colores brillantes que mezcla sabores de otro mundo con una dosis extra de diversión. Su receta es un secreto cósmico, pero su efecto es universal: donde hay ${MARCA}, hay fiesta.`
+			},
+			diversion: {
+				titulo: 'Más Diversión',
+				texto: `La familia ${MARCA} se expande por el universo: Nebulosa, con frutos rojos y destellos brillantes; Supernova, un cítrico explosivo con burbujas extra; Agujero Negro, de sabor oscuro e intenso que atrapa a cualquiera; Andrómeda, una mezcla tropical en lata edición galáctica; y Saturno, de uva con "anillos" de gelatina comestible. ¡Elige tu órbita favorita!`
+			},
+			arriesgate: {
+				titulo: 'Arriésgate',
+				texto: `Prepárate para despegar: diversión extrema, cero cansancio y energía infinita. Con cada sorbo sentirás que la fiesta apenas comienza, que la música no se detiene y que tu batería social nunca se agota. ¿Te atreves a probarlo?`
+			}
+		};
+
+		const arButtons = document.getElementById('ar-buttons');
+		const infoPanel = document.getElementById('info-panel');
+		const infoTitle = document.getElementById('info-title');
+		const infoText = document.getElementById('info-text');
+
+		document.querySelectorAll('.ar-btn').forEach((btn) => {
+			btn.addEventListener('click', () => {
+				const data = INFO[btn.dataset.info];
+				infoTitle.textContent = data.titulo;
+				infoText.textContent = data.texto;
+				infoPanel.style.setProperty('--c', btn.dataset.color);
+				infoPanel.classList.remove('oculto');
+			});
+		});
+
+		document.getElementById('info-close').addEventListener('click', () => {
+			infoPanel.classList.add('oculto');
+		});
+
+		// ------------------------------------------------------------------
 
 		let player = null;
 		let mindarController = null;
@@ -139,6 +200,17 @@
 				// La cámara se inicia aquí, dentro del gesto del usuario.
 				mindarController = new MindARController(arContainer, player, debugMode);
 				window.mindarController = mindarController;
+
+				// Los botones aparecen cuando se reconoce el marcador
+				// y se ocultan (junto con el panel) cuando se pierde.
+				mindarController.addListener('found', () => {
+					arButtons.classList.remove('oculto');
+				});
+
+				mindarController.addListener('lost', () => {
+					arButtons.classList.add('oculto');
+					infoPanel.classList.add('oculto');
+				});
 
 				await mindarController.start();
 
